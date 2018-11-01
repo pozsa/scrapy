@@ -47,27 +47,36 @@ response = requests.get(
 #TODO check response status
 #response.status_code
 
-#TODO catch json decode exceptions
-content = response.json()
+try:
+    content = response.json()
+except Exception as e:
+    err_msg = f'{e.args}\n\n{response.text()}'
+    core.notify(err_msg)
+    exit(err_msg)
 
 try:
     total_count = content['search']['searchResults']['totalCount']
     page_size = content['search']['searchResults']['provider']['pageSize']
     max_page = math.ceil(total_count / page_size)
+    padding = len(str(max_page))
+    filename = f'{page_num:0{padding}d}.json'
 
     search_results = content['search']['searchResults']
     providers = content['search']['searchResults']['provider']['results']
 except Exception as e:
     #TODO logging
     core.notify(e.args)
-    exit()
+    exit(e.args)
 
 core.save_json_to_file(FULL_DIR, filename, content)
 core.save_json_to_file(RESULTS_DIR, filename, search_results)
 core.save_json_to_file(PROVIDERS_DIR, filename, providers)
 
-for i in range(2, max_page + 1):
-    page_num = i
+for page_num in range(2, max_page + 1):
+    crawl_delay = random.randint(30, 60)
+    time.sleep(crawl_delay)
+
+    filename = f'{page_num:0{padding}d}.json'
 
     params = (
         ('distances', 'National'),
@@ -91,16 +100,16 @@ for i in range(2, max_page + 1):
     except Exception as e:
         #TODO logging
         core.notify(e.args)
-        exit()
+        exit(e.args)
 
     core.save_json_to_file(FULL_DIR, filename, content)
     core.save_json_to_file(RESULTS_DIR, filename, search_results)
     if providers:
         core.save_json_to_file(PROVIDERS_DIR, filename, providers)
     else:
-        content = f'No providers found! Page: {page_num}'
-        core.notify(content)
-        exit()
+        err_msg = f'No providers found! Page: {page_num}'
+        core.notify(err_msg)
+        exit(err_msg)
 
-    crawl_delay = random.randint(30, 60)
-    time.sleep(crawl_delay)
+    if page_num == max_page:
+        core.notify('Job done!')
