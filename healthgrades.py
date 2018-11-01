@@ -50,7 +50,7 @@ response = requests.get(
 try:
     content = response.json()
 except Exception as e:
-    err_msg = f'{e.args}\n\n{response.text()}'
+    err_msg = f'{e.args}\n\n{response.text}'
     core.notify(err_msg)
     exit(err_msg)
 
